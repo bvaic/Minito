@@ -6,8 +6,6 @@ FILL_CHAR = ' '
 INPUT_BOX_PROMPT = "> "
 
 filename = "untitled"
-file_created = False
-input_state = "task"  # "saving", "creating-file"
 
 palette = [
     ("task-normal", "default,bold", "default"),
@@ -17,7 +15,7 @@ palette = [
 
 # adds and removes attr on text based on state of checkbox
 class CustomCheckBox(urwid.CheckBox):
-    
+
     def apply_completed_effect(self):
         self.set_label(("task-completed", self.get_label()))
 
@@ -44,8 +42,6 @@ class Minito:
         raise urwid.ExitMainLoop()
 
     def on_key_press(self, key):
-        global input_state
-
         match key:
             case 'q' | 'Q':
                 self.exit_program()
@@ -55,10 +51,10 @@ class Minito:
                 self.process_input_box()
             case "ctrl x":
                 if filename == "untitled":
-                    input_state = "creating-file"
+                    self.input_state = "creating-file"
                     self.input_box.set_title("Enter Filename to Save")
                 else:
-                    input_state = "exiting"
+                    self.input_state = "exiting"
                     self.input_box.set_title("Save Changes? (yes/no)")
  
     # switches between body and footer of the main_frame
@@ -82,7 +78,7 @@ class Minito:
         if text == "":
             return
         
-        match input_state:
+        match self.input_state:
             case "task":
                 self.add_task(text, False)
             case "creating-file":
@@ -125,6 +121,8 @@ class Minito:
                 self.add_task(entry["Task"], True if entry["State"] == "True" else False)
 
     def __init__(self):
+        self.input_state = "task"  # "saving", "creating-file"
+
         # setting filename if passed through
         if len(sys.argv) == 2:
             self.filename = sys.argv[1]
