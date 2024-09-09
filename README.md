@@ -44,6 +44,7 @@ MINITO is a MINImalist TOdo app written in Python...
 
 ## Potential Developments
 Please note that just because a feature is present here does not mean that it will be implemented.
+- Transition from csv to json in order to store more detailed information about a minito file
 
 ## Dependencies
 - urwid

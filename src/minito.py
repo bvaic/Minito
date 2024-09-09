@@ -2,19 +2,37 @@ import sys
 import csv
 import urwid
 
-FILL_CHAR = ' '
+# Modifiable Constants
+# TODO: put modifiable constants into configuration file
 INPUT_BOX_PROMPT = "> "
 
-filename = "untitled"
+# Definite Constants
+FILE_TEMPLATE = \
+"""
+{
+    "formatting": {
+        "spaces-between-tasks": 0
+    },
+    "tasks": [
+        
+    ]
+}
+"""
 
-palette = [
+PALETTE = [
     ("task-normal", "default,bold", "default"),
     ("task-completed", "default,strikethrough", "default")
 ]
 
 
-# adds and removes attr on text based on state of checkbox
+# When CheckBox switches to completed:
+# - the bold will be removed
+# - a strikethrough will be applied
 class CustomCheckBox(urwid.CheckBox):
+    def __init__(self, text, state):
+        super().__init__(("task-normal", text), state=state)
+        if state == True:
+            self.apply_completed_effect()
 
     def apply_completed_effect(self):
         self.set_label(("task-completed", self.get_label()))
@@ -36,11 +54,42 @@ class CustomCheckBox(urwid.CheckBox):
         return super().keypress(size, key)  # keeping the main functionality of the checkbox
 
 
+# A Minito class was created so that global variables could become class members
+# Now, any Minito function can access a widget that is a member of the Minito class
 class Minito:
+    def __init__(self):
+            self.input_state = "task"  # "saving", "creating-file"
+            self.filename = "untitled"
+
+            # setting filename if passed through
+            if len(sys.argv) == 2:
+                self.filename = sys.argv[1]
+
+            self.input_box_edit_widget = urwid.Edit(INPUT_BOX_PROMPT)
+            self.input_box = urwid.LineBox(self.input_box_edit_widget, title="Add Task", title_align="left")
+
+            todo_widget_list = [urwid.Text("")]  # the Text object is required so that when all tasks are gone, the program doesn't break
+            self.todo_pile = urwid.Pile(widget_list=todo_widget_list)
+
+            if self.filename != "untitled":
+                self.load_file()
+            
+            self.title_text = urwid.Text("MINITO - " + self.filename, align="center")
+            self.main_frame = urwid.Frame(
+                header=self.title_text,
+                body=urwid.Filler(self.todo_pile, valign="top"),
+                footer=self.input_box,
+                focus_part="footer"
+            )
+
+            loop = urwid.MainLoop(self.main_frame, palette=PALETTE, unhandled_input=self.on_key_press)
+            loop.run()
 
     def exit_program(self):
         raise urwid.ExitMainLoop()
 
+    # This function can alter the input state which will change what pressing ENTER
+    # on the input box does
     def on_key_press(self, key):
         match key:
             case 'q' | 'Q':
@@ -50,15 +99,17 @@ class Minito:
             case "enter":
                 self.process_input_box()
             case "ctrl x":
-                if filename == "untitled":
+                if self.filename == "untitled":
                     self.input_state = "creating-file"
                     self.input_box.set_title("Enter Filename to Save")
+                    self.switch_focus_to("input-box")
                 else:
                     self.input_state = "exiting"
                     self.input_box.set_title("Save Changes? (yes/no)")
+                    self.switch_focus_to("input-box")
  
-    # switches between body and footer of the main_frame
     def switch_focus(self):
+        """Switches between the main panel and input box"""
         current_focus = self.main_frame.focus_part
         if current_focus == "body":
             self.main_frame.focus_position = "footer"
@@ -67,20 +118,28 @@ class Minito:
         else:
             self.main_frame.focus_position = "footer"
 
+    def switch_focus_to(self, target: str):
+        """target must be either \"main\" or \"input-box\""""
+        if target == "main":
+            self.main_frame.focus_position = "body"
+        elif target == "input-box":
+            self.main_frame.focus_position = "footer"
+        else:
+            self.main_frame.focus_position = "body"
+
     def get_input_box_text(self):
         return self.input_box_edit_widget.get_edit_text()
 
     def process_input_box(self):
-        global filename
+        """does something with the input based on what the input state is"""
+        input_box_text = self.get_input_box_text()
 
-        # stop if input box is empty
-        text = self.get_input_box_text()
-        if text == "":
+        if input_box_text == "":
             return
         
         match self.input_state:
             case "task":
-                self.add_task(text, False)
+                self.add_task(input_box_text, False)
             case "creating-file":
                 filename = f".\\{self.get_input_box_text()}.csv"
                 self.title_text.set_text(f"MINITO - {filename}")
@@ -93,17 +152,22 @@ class Minito:
         self.input_box_edit_widget.set_edit_text("")
 
     def add_task(self, text, state):
-        checkbox = CustomCheckBox(("task-normal", text), state=state)
-        if state == True:
-            checkbox.apply_completed_effect()
+        checkbox = CustomCheckBox(text, state=state)
         self.todo_pile.widget_list.append(checkbox)
 
     def save_file(self):
-        with open(filename, 'w') as file:
+        with open(self.filename, 'w') as file:
             file.write("Task,State\n")
             for checkbox in self.todo_pile.widget_list[1:]:
                 state = "True" if checkbox.get_state() == True else "False"
                 file.write(f"\"{checkbox.get_label()}\",{state}\n")
+
+    def load_file(self):
+        with open(self.filename, 'r') as file:
+            reader = csv.DictReader(file)
+            data = [row for row in reader]
+            for entry in data:
+                self.add_task(entry["Task"], True if entry["State"] == "True" else False)
 
     def exiting(self):
         user_input = self.get_input_box_text()
@@ -112,40 +176,6 @@ class Minito:
             self.exit_program()
         elif user_input == "no":
             self.exit_program()
-
-    def load_from_file(self):
-        with open(filename, 'r') as file:
-            reader = csv.DictReader(file)
-            data = [row for row in reader]
-            for entry in data:
-                self.add_task(entry["Task"], True if entry["State"] == "True" else False)
-
-    def __init__(self):
-        self.input_state = "task"  # "saving", "creating-file"
-
-        # setting filename if passed through
-        if len(sys.argv) == 2:
-            self.filename = sys.argv[1]
-
-        self.input_box_edit_widget = urwid.Edit(INPUT_BOX_PROMPT)
-        self.input_box = urwid.LineBox(self.input_box_edit_widget, title="Add Task", title_align="left")
-
-        todo_widget_list = [urwid.Text("")]  # the Text object is required so that when all tasks are gone, the program doesn't break
-        self.todo_pile = urwid.Pile(widget_list=todo_widget_list)
-
-        if filename != "untitled":
-            self.load_from_file()
-        
-        self.title_text = urwid.Text("MINITO - " + filename, align="center")
-        self.main_frame = urwid.Frame(
-            header=self.title_text,
-            body=urwid.Filler(self.todo_pile, valign="top"),
-            footer=self.input_box,
-            focus_part="footer"
-        )
-
-        loop = urwid.MainLoop(self.main_frame, palette=palette, unhandled_input=self.on_key_press)
-        loop.run()
 
 
 minito: Minito
