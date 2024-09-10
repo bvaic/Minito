@@ -1,6 +1,6 @@
 {
     "formatting": {
-        "spaces-between-tasks": 1
+        "spaces-between-tasks": 0
     },
     "tasks": [
         {
@@ -17,7 +17,7 @@
         },
         {
             "task": "Implement core features",
-            "completed": false
+            "completed": true
         },
         {
             "task": "Run tests",
