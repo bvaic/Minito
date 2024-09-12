@@ -4,4 +4,21 @@
 # For version 1.0
 # ======================================================
 
-input_box_prompt: "> "
+# TODO
+General:
+  input_box_prompt: " > "
+
+# TODO
+Keybindings:
+  # For switching between the main panel and the input box
+  switch: "tab"
+  # For toggling a checkbox and entering info in the input box
+  toggle_and_enter: "enter"
+  # To edit a task
+  edit: "ctrl e"
+  # To delete a task
+  delete: "backspace"
+  # Exit the file and open prompt to save
+  save_and_exit: "ctrl x"
+  # Exit the file without saving (must be within the tasks window)
+  exit_without_saving: "q"

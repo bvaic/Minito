@@ -1,13 +1,7 @@
 import sys
-import csv
 import json
+import yaml
 import urwid
-
-# Modifiable Constants
-# TODO: put modifiable constants into configuration file
-INPUT_BOX_PROMPT = "> "
-
-# Definite Constants
 
 # gets converted to json
 FILE_TEMPLATE = \
@@ -47,11 +41,14 @@ class Minito:
             self.task_to_edit_index = 0
             self.filename = "untitled"
 
+            self.minito_config = self.load_config_file()
+
             # setting filename if passed through
             if len(sys.argv) == 2:
                 self.filename = sys.argv[1]
 
-            self.input_box_edit_widget = urwid.Edit(INPUT_BOX_PROMPT)
+            input_box_prompt = self.minito_config.get("General").get("input_box_prompt")
+            self.input_box_edit_widget = urwid.Edit(input_box_prompt)
             self.input_box = urwid.LineBox(self.input_box_edit_widget, title="Add Task", title_align="left")
 
             todo_widget_list = [urwid.Text("")]  # the Text object is required so that when all tasks are gone, the program doesn't break
@@ -71,6 +68,14 @@ class Minito:
             loop = urwid.MainLoop(self.main_frame, palette=PALETTE, unhandled_input=self.on_key_press)
             loop.run()
 
+    def load_config_file(self) -> dict:
+        with open(r"..\configuration.yaml") as config_file:
+            config_dict = yaml.safe_load(config_file)
+            return config_dict
+
+    def get_keybinding(self, action: str) -> str:
+        return self.minito_config.get("Keybindings").get(action)
+
     def exit_program(self):
         raise urwid.ExitMainLoop()
     
@@ -82,15 +87,15 @@ class Minito:
     # This function can alter the input state which will change what pressing ENTER
     # on the input box does
     def on_key_press(self, key: str):
-        match key:
-            case 'q' | 'Q':
-                self.exit_program()
-            case "tab":
-                self.switch_focus()
-            case "enter":
-                self.process_input_box()
-            case "ctrl x":
-                self.set_input_state("save-or-not")
+        # ? can this chain of ifs somehow be improved?
+        if key == self.get_keybinding("exit_without_saving"):  # 'q'
+            self.exit_program()
+        elif key == self.get_keybinding("switch"):  # "tab"
+            self.switch_focus()
+        elif key == self.get_keybinding("toggle_and_enter"):  # "enter"
+            self.process_input_box()
+        elif key == self.get_keybinding("save_and_exit"):  # "ctrl x"
+            self.set_input_state("save-or-not")
 
     def switch_focus(self):
         """switches between the main panel and input box"""
@@ -170,7 +175,9 @@ class Minito:
             file.write(self.generate_file_contents())
 
     def load_file(self):
-        # TODO: check if file is a .minito
+        if self.filename.split('.')[-1] != "minito":
+            raise Exception("File is not a '.minito' file")
+        
         with open(self.filename, 'r') as file:
             file_data = json.load(file)
             for task in file_data["tasks"]:
@@ -198,7 +205,7 @@ class CustomCheckBox(urwid.CheckBox):
     def apply_completed_effect(self):
         self.set_label(("task-completed", self.get_label()))
 
-    # TODO: fixed to apply correct formatting based on current state
+    # fixed to apply correct formatting based on current state
     def set_label(self, text: str):
         if self.get_state() == False:
             super().set_label(("task-normal", text))
