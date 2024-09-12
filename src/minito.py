@@ -26,35 +26,13 @@ PALETTE = [
     ("task-completed", "default,strikethrough", "default")
 ]
 
-
-# When CheckBox switches to completed:
-# - the bold will be removed
-# - a strikethrough will be applied
-class CustomCheckBox(urwid.CheckBox):
-    def __init__(self, text, state):
-        super().__init__(("task-normal", text), state=state)
-        if state == True:
-            self.apply_completed_effect()
-
-    def apply_completed_effect(self):
-        self.set_label(("task-completed", self.get_label()))
-
-    def keypress(self, size, key: str):
-        if key == "backspace":
-            minito.todo_pile.widget_list.remove(self)
-            return
-            
-        if key != "enter":
-            return super().keypress(size, key)
-        
-        # when ENTER pressed on this checkbox, apply attr if completed else remove attr
-        if self.get_state() == False:
-            self.apply_completed_effect()
-        else:
-            self.set_label(("task-normal", self.get_label()))
-
-        return super().keypress(size, key)  # keeping the main functionality of the checkbox
-
+# input state -> input box title
+INPUT_BOX_TITLE_FOR = {
+    "adding-task": "Add Task",
+    "editing-task": "Edit Task",
+    "entering-filename": "Save As...",
+    "save-or-not": "Save? (yes/no)"
+}
 
 # A Minito class was created so that global variables could become class members
 # Now, any Minito function can access a widget that is a member of the Minito class
@@ -62,10 +40,11 @@ class Minito:
     def __init__(self):
             # Input States:
             # "adding-task"             default state, input becomes a new task
-            # TODO "editing-task"       input modifies a task (task contents are copied to input box for editing)
+            # "editing-task"            input modifies a task (task contents are copied to input box for editing)
             # "entering-filename"       occurs when file is untitled, input becomes the filename
             # "save-or-not"             input is user's decision to save the file
             self.input_state = "adding-task"
+            self.task_to_edit_index = 0
             self.filename = "untitled"
 
             # setting filename if passed through
@@ -95,9 +74,9 @@ class Minito:
     def exit_program(self):
         raise urwid.ExitMainLoop()
     
-    def set_input_state(self, new_state, new_input_box_title):
+    def set_input_state(self, new_state):
         self.input_state = new_state
-        self.input_box.set_title(new_input_box_title)
+        self.input_box.set_title(INPUT_BOX_TITLE_FOR[new_state])
         self.switch_focus_to("input-box")
 
     # This function can alter the input state which will change what pressing ENTER
@@ -111,7 +90,7 @@ class Minito:
             case "enter":
                 self.process_input_box()
             case "ctrl x":
-                self.set_input_state("save-or-not", "Save? (yes/no)")
+                self.set_input_state("save-or-not")
 
     def switch_focus(self):
         """switches between the main panel and input box"""
@@ -134,6 +113,9 @@ class Minito:
 
     def get_input_box_text(self):
         return self.input_box_edit_widget.get_edit_text()
+    
+    def set_input_box_text(self, text):
+        self.input_box_edit_widget.set_edit_text(text)
 
     def process_input_box(self):
         """does something with the input based on input state"""
@@ -145,6 +127,12 @@ class Minito:
         match self.input_state:
             case "adding-task":
                 self.add_task(input_box_text, False)
+            case "editing-task":
+                try:
+                    self.todo_pile.widget_list[self.task_to_edit_index].set_label(input_box_text)
+                    self.set_input_state("adding-task")
+                except IndexError:
+                    self.set_input_state("adding-task")
             case "entering-filename":
                 self.filename = f".\\{self.get_input_box_text() + FILE_EXTENSION}"
                 self.save_file()
@@ -152,7 +140,7 @@ class Minito:
             case "save-or-not":
                 if input_box_text == "yes":
                     if self.filename == "untitled":
-                        self.set_input_state("entering-filename", "Save As...")
+                        self.set_input_state("entering-filename")
                     else:
                         self.save_file()
                         self.exit_program()
@@ -163,7 +151,7 @@ class Minito:
         self.input_box_edit_widget.set_edit_text("")
 
     def add_task(self, text, state):
-        checkbox = CustomCheckBox(text, state=state)
+        checkbox = CustomCheckBox(text, state, minito_obj=self)
         self.todo_pile.widget_list.append(checkbox)
 
     def generate_file_contents(self):
@@ -197,7 +185,42 @@ class Minito:
             self.exit_program()
 
 
-minito: Minito
+# When CheckBox switches to completed:
+# - the bold will be removed
+# - a strikethrough will be applied
+class CustomCheckBox(urwid.CheckBox):
+    def __init__(self, text: str, state: str, minito_obj: Minito):
+        self.minito_obj = minito_obj
+        super().__init__(("task-normal", text), state=state)
+        if state == True:
+            self.apply_completed_effect()
+
+    def apply_completed_effect(self):
+        self.set_label(("task-completed", self.get_label()))
+
+    def set_label(self, text):
+        super().set_label(("task-normal", text))
+
+    def keypress(self, size, key: str):
+        if key == "backspace":
+            self.minito_obj.todo_pile.widget_list.remove(self)
+            return
+        elif key == "ctrl e":
+            self.minito_obj.set_input_state("editing-task")
+            self.minito_obj.set_input_box_text(self.get_label())
+            self.minito_obj.task_to_edit_index = self.minito_obj.todo_pile.widget_list.index(self)
+            return
+        elif key != "enter":
+            return super().keypress(size, key)
+        
+        # when ENTER pressed on this checkbox, apply attr if completed else remove attr
+        if self.get_state() == False:
+            self.apply_completed_effect()
+        else:
+            self.set_label(("task-normal", self.get_label()))
+
+        return super().keypress(size, key)  # keeping the main functionality of the checkbox
+
 
 if __name__ == "__main__":
     minito = Minito()

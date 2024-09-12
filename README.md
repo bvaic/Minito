@@ -31,8 +31,10 @@ MINITO is a MINImalist TOdo app written in Python...
 |------------|-------|
 | TAB | Switch between the main panel and the input box |
 | ENTER | Toggles a checkbox and used to enter information in the input box |
-| BACKSPACE | Deletes a task |
-| CTRL + X | Exit the file |
+| CTRL + E | Edit a task |
+| BACKSPACE | Delete a task |
+| CTRL + X | Exit the file with prompt to save |
+| Q | Exit file with no prompt (only works when in the tasks window) |
 
 
 ## Configuration
