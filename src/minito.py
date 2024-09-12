@@ -198,8 +198,12 @@ class CustomCheckBox(urwid.CheckBox):
     def apply_completed_effect(self):
         self.set_label(("task-completed", self.get_label()))
 
+    # TODO: fixed to apply correct formatting based on current state
     def set_label(self, text: str):
-        super().set_label(("task-normal", text))
+        if self.get_state() == False:
+            super().set_label(("task-normal", text))
+        else:
+            super().set_label(("task-completed", text))
 
     def keypress(self, size: tuple[int], key: str):
         if key == "backspace":
