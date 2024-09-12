@@ -74,14 +74,14 @@ class Minito:
     def exit_program(self):
         raise urwid.ExitMainLoop()
     
-    def set_input_state(self, new_state):
+    def set_input_state(self, new_state: str):
         self.input_state = new_state
         self.input_box.set_title(INPUT_BOX_TITLE_FOR[new_state])
         self.switch_focus_to("input-box")
 
     # This function can alter the input state which will change what pressing ENTER
     # on the input box does
-    def on_key_press(self, key):
+    def on_key_press(self, key: str):
         match key:
             case 'q' | 'Q':
                 self.exit_program()
@@ -102,7 +102,7 @@ class Minito:
         else:
             self.main_frame.focus_position = "footer"
 
-    def switch_focus_to(self, target):
+    def switch_focus_to(self, target: str):
         """target must be either \"main\" or \"input-box\""""
         if target == "main":
             self.main_frame.focus_position = "body"
@@ -114,7 +114,7 @@ class Minito:
     def get_input_box_text(self):
         return self.input_box_edit_widget.get_edit_text()
     
-    def set_input_box_text(self, text):
+    def set_input_box_text(self, text: str):
         self.input_box_edit_widget.set_edit_text(text)
 
     def process_input_box(self):
@@ -150,7 +150,7 @@ class Minito:
         # clear the input box
         self.input_box_edit_widget.set_edit_text("")
 
-    def add_task(self, text, state):
+    def add_task(self, text: str, state: bool):
         checkbox = CustomCheckBox(text, state, minito_obj=self)
         self.todo_pile.widget_list.append(checkbox)
 
@@ -198,10 +198,10 @@ class CustomCheckBox(urwid.CheckBox):
     def apply_completed_effect(self):
         self.set_label(("task-completed", self.get_label()))
 
-    def set_label(self, text):
+    def set_label(self, text: str):
         super().set_label(("task-normal", text))
 
-    def keypress(self, size, key: str):
+    def keypress(self, size: tuple[int], key: str):
         if key == "backspace":
             self.minito_obj.todo_pile.widget_list.remove(self)
             return
