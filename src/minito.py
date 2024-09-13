@@ -219,6 +219,9 @@ class CustomCheckBox(urwid.CheckBox):
         elif key == "ctrl e":
             self.minito_obj.set_input_state("editing-task")
             self.minito_obj.set_input_box_text(self.get_label())
+            # moving the cursor to the right
+            text_length = len(self.minito_obj.get_input_box_text())
+            self.minito_obj.input_box_edit_widget.set_edit_pos(text_length)
             self.minito_obj.task_to_edit_index = self.minito_obj.todo_pile.widget_list.index(self)
             return
         elif key != "enter":
