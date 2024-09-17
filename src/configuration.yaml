@@ -1,14 +1,12 @@
 # ======================================================
 # The MINITO Configuration File
 # 
-# For version 1.0
+# For version 1.0.0
 # ======================================================
 
-# TODO
 General:
   input_box_prompt: " > "
 
-# TODO
 Keybindings:
   # For switching between the main panel and the input box
   switch: "tab"

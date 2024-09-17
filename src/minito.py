@@ -3,6 +3,8 @@ import json
 import yaml
 import urwid
 
+CONFIG_FILE_PATH = r".\configuration.yaml"
+
 # gets converted to json
 FILE_TEMPLATE = \
 {
@@ -69,7 +71,7 @@ class Minito:
             loop.run()
 
     def load_config_file(self) -> dict:
-        with open(r"..\configuration.yaml") as config_file:
+        with open(CONFIG_FILE_PATH) as config_file:
             config_dict = yaml.safe_load(config_file)
             return config_dict
 
@@ -213,10 +215,10 @@ class CustomCheckBox(urwid.CheckBox):
             super().set_label(("task-completed", text))
 
     def keypress(self, size: tuple[int], key: str):
-        if key == "backspace":
+        if key == self.minito_obj.get_keybinding("delete"):
             self.minito_obj.todo_pile.widget_list.remove(self)
             return
-        elif key == "ctrl e":
+        elif key == self.minito_obj.get_keybinding("edit"):
             self.minito_obj.set_input_state("editing-task")
             self.minito_obj.set_input_box_text(self.get_label())
             # moving the cursor to the right
@@ -224,7 +226,7 @@ class CustomCheckBox(urwid.CheckBox):
             self.minito_obj.input_box_edit_widget.set_edit_pos(text_length)
             self.minito_obj.task_to_edit_index = self.minito_obj.todo_pile.widget_list.index(self)
             return
-        elif key != "enter":
+        elif key != self.minito_obj.get_keybinding("toggle_and_enter"):
             return super().keypress(size, key)
         
         # when ENTER pressed on this checkbox, apply attr if completed else remove attr
