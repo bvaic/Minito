@@ -5,7 +5,6 @@
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
-- [Contributing](#contributing)
 - [Potential Developments](#potential-developments)
 - [Dependencies](#dependencies)
 
