@@ -1,9 +1,11 @@
+import os
 import sys
 import json
 import yaml
 import urwid
 
-CONFIG_FILE_PATH = r".\configuration.yaml"
+CONFIG_DIR = os.environ.get("USERPROFILE") + r"\AppData\Local\Minito" # %USERPROFILE%\AppData\Local\Minito\configuration.yaml
+CONFIG_FILE_PATH = CONFIG_DIR + r"\configuration.yaml"
 
 # gets converted to json
 FILE_TEMPLATE = \
@@ -43,6 +45,8 @@ class Minito:
             self.task_to_edit_index = 0
             self.filename = "untitled"
 
+            self.ensure_config_dir_exists()
+            self.ensure_config_file_exists()
             self.minito_config = self.load_config_file()
 
             # setting filename if passed through
@@ -70,7 +74,29 @@ class Minito:
             loop = urwid.MainLoop(self.main_frame, palette=PALETTE, unhandled_input=self.on_key_press)
             loop.run()
 
+    def resource_path(self, relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
+
+    def ensure_config_dir_exists(self):
+        if not os.path.exists(CONFIG_DIR):
+            os.makedirs(CONFIG_DIR)
+
+    def ensure_config_file_exists(self):
+        if not os.path.exists(CONFIG_FILE_PATH):
+            # copy internal config file into config dir
+            with open(self.resource_path(r".\configuration.yaml"), 'r') as internal_config_file:
+                default_config = internal_config_file.read()
+            
+            with open(CONFIG_FILE_PATH, 'w') as config_file:
+                config_file.write(default_config)
+
     def load_config_file(self) -> dict:
+        # config_file_path = self.resource_path(r".\configuration.yaml")
         with open(CONFIG_FILE_PATH) as config_file:
             config_dict = yaml.safe_load(config_file)
             return config_dict
