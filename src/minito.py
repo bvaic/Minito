@@ -1,15 +1,15 @@
-import os
-import sys
 import json
-import yaml
-import urwid
+import sys
+import os
 
-CONFIG_DIR = os.environ.get("USERPROFILE") + r"\AppData\Local\Minito" # %USERPROFILE%\AppData\Local\Minito\configuration.yaml
+import urwid
+import yaml
+
+CONFIG_DIR = os.environ.get("USERPROFILE") + r"\AppData\Local\Minito"  # %USERPROFILE%\AppData\Local\Minito\configuration.yaml
 CONFIG_FILE_PATH = CONFIG_DIR + r"\configuration.yaml"
 
 # gets converted to json
-FILE_TEMPLATE = \
-{
+FILE_TEMPLATE = {
     "formatting": {
         "spaces-between-tasks": 0
     },
@@ -32,49 +32,51 @@ INPUT_BOX_TITLE_FOR = {
     "save-or-not": "Save? (yes/no)"
 }
 
-# A Minito class was created so that global variables could become class members
-# Now, any Minito function can access a widget that is a member of the Minito class
+
+# A Minito class was created so that global variables could become class members.
+# Now, any Minito function can access a widget that is a member of the Minito class.
 class Minito:
-    def __init__(self):
-            # Input States:
-            # "adding-task"             default state, input becomes a new task
-            # "editing-task"            input modifies a task (task contents are copied to input box for editing)
-            # "entering-filename"       occurs when file is untitled, input becomes the filename
-            # "save-or-not"             input is user's decision to save the file
-            self.input_state = "adding-task"
-            self.task_to_edit_index = 0
-            self.filename = "untitled"
+    def __init__(self) -> None:
+        # Input States:
+        # "adding-task"             default state, input becomes a new task
+        # "editing-task"            input modifies a task (task contents are copied to input box for editing)
+        # "entering-filename"       occurs when file is untitled, input becomes the filename
+        # "save-or-not"             input is user's decision to save the file
+        self.input_state = "adding-task"
+        self.task_to_edit_index = 0
+        self.filename = "untitled"
 
-            self.ensure_config_dir_exists()
-            self.ensure_config_file_exists()
-            self.minito_config = self.load_config_file()
+        self.ensure_config_dir_exists()
+        self.ensure_config_file_exists()
+        self.minito_config = self.load_config_file()
 
-            # setting filename if passed through
-            if len(sys.argv) == 2:
-                self.filename = sys.argv[1]
+        # setting filename if passed through
+        if len(sys.argv) == 2:
+            self.filename = sys.argv[1]
 
-            input_box_prompt = self.minito_config.get("General").get("input_box_prompt")
-            self.input_box_edit_widget = urwid.Edit(input_box_prompt)
-            self.input_box = urwid.LineBox(self.input_box_edit_widget, title="Add Task", title_align="left")
+        input_box_prompt = self.minito_config.get("General").get("input_box_prompt")
+        self.input_box_edit_widget = urwid.Edit(input_box_prompt)
+        self.input_box = urwid.LineBox(self.input_box_edit_widget, title="Add Task", title_align="left")
 
-            todo_widget_list = [urwid.Text("")]  # the Text object is required so that when all tasks are gone, the program doesn't break
-            self.todo_pile = urwid.Pile(widget_list=todo_widget_list)
+        todo_widget_list = [urwid.Text("")]  # the Text object is required so that when all tasks are gone, the program doesn't break
+        self.todo_pile = urwid.Pile(widget_list=todo_widget_list)
 
-            if self.filename != "untitled":
-                self.load_file()
-            
-            self.title_text = urwid.Text("MINITO - " + self.filename, align="center")
-            self.main_frame = urwid.Frame(
-                header=self.title_text,
-                body=urwid.Filler(self.todo_pile, valign="top"),
-                footer=self.input_box,
-                focus_part="footer"
-            )
+        if self.filename != "untitled":
+            self.load_file()
 
-            loop = urwid.MainLoop(self.main_frame, palette=PALETTE, unhandled_input=self.on_key_press)
-            loop.run()
+        self.title_text = urwid.Text("MINITO - " + self.filename, align="center")
+        self.main_frame = urwid.Frame(
+            header=self.title_text,
+            body=urwid.Filler(self.todo_pile, valign="top"),
+            footer=self.input_box,
+            focus_part="footer"
+        )
 
-    def resource_path(self, relative_path):
+        loop = urwid.MainLoop(self.main_frame, palette=PALETTE, unhandled_input=self.on_key_press)
+        loop.run()
+
+    @staticmethod
+    def resource_path(relative_path) -> str:
         try:
             base_path = sys._MEIPASS
         except Exception:
@@ -82,11 +84,12 @@ class Minito:
 
         return os.path.join(base_path, relative_path)
 
-    def ensure_config_dir_exists(self):
+    @staticmethod
+    def ensure_config_dir_exists() -> None:
         if not os.path.exists(CONFIG_DIR):
             os.makedirs(CONFIG_DIR)
 
-    def ensure_config_file_exists(self):
+    def ensure_config_file_exists(self) -> None:
         if not os.path.exists(CONFIG_FILE_PATH):
             # copy internal config file into config dir
             with open(self.resource_path(r".\configuration.yaml"), 'r') as internal_config_file:
@@ -95,7 +98,8 @@ class Minito:
             with open(CONFIG_FILE_PATH, 'w') as config_file:
                 config_file.write(default_config)
 
-    def load_config_file(self) -> dict:
+    @staticmethod
+    def load_config_file() -> dict:
         # config_file_path = self.resource_path(r".\configuration.yaml")
         with open(CONFIG_FILE_PATH) as config_file:
             config_dict = yaml.safe_load(config_file)
@@ -104,28 +108,27 @@ class Minito:
     def get_keybinding(self, action: str) -> str:
         return self.minito_config.get("Keybindings").get(action)
 
-    def exit_program(self):
+    def exit_program(self) -> None:
         raise urwid.ExitMainLoop()
     
-    def set_input_state(self, new_state: str):
+    def set_input_state(self, new_state: str) -> None:
         self.input_state = new_state
         self.input_box.set_title(INPUT_BOX_TITLE_FOR[new_state])
         self.switch_focus_to("input-box")
 
     # This function can alter the input state which will change what pressing ENTER
     # on the input box does
-    def on_key_press(self, key: str):
-        # ? can this chain of ifs somehow be improved?
-        if key == self.get_keybinding("exit_without_saving"):  # 'q'
+    def on_key_press(self, key: str) -> None:
+        if key == self.get_keybinding("exit_without_saving"):   # 'q'
             self.exit_program()
-        elif key == self.get_keybinding("switch"):  # "tab"
+        elif key == self.get_keybinding("switch"):              # "tab"
             self.switch_focus()
-        elif key == self.get_keybinding("toggle_and_enter"):  # "enter"
+        elif key == self.get_keybinding("toggle_and_enter"):    # "enter"
             self.process_input_box()
-        elif key == self.get_keybinding("save_and_exit"):  # "ctrl x"
+        elif key == self.get_keybinding("save_and_exit"):       # "ctrl x"
             self.set_input_state("save-or-not")
 
-    def switch_focus(self):
+    def switch_focus(self) -> None:
         """switches between the main panel and input box"""
         current_focus = self.main_frame.focus_part
         if current_focus == "body":
@@ -135,7 +138,7 @@ class Minito:
         else:
             self.main_frame.focus_position = "footer"
 
-    def switch_focus_to(self, target: str):
+    def switch_focus_to(self, target: str) -> None:
         """target must be either \"main\" or \"input-box\""""
         if target == "main":
             self.main_frame.focus_position = "body"
@@ -144,13 +147,13 @@ class Minito:
         else:
             self.main_frame.focus_position = "body"
 
-    def get_input_box_text(self):
+    def get_input_box_text(self) -> str:
         return self.input_box_edit_widget.get_edit_text()
     
-    def set_input_box_text(self, text: str):
+    def set_input_box_text(self, text: str) -> None:
         self.input_box_edit_widget.set_edit_text(text)
 
-    def process_input_box(self):
+    def process_input_box(self) -> None:
         """does something with the input based on input state"""
         input_box_text = self.get_input_box_text()
 
@@ -183,11 +186,11 @@ class Minito:
         # clear the input box
         self.input_box_edit_widget.set_edit_text("")
 
-    def add_task(self, text: str, state: bool):
+    def add_task(self, text: str, state: bool) -> None:
         checkbox = CustomCheckBox(text, state, minito_obj=self)
         self.todo_pile.widget_list.append(checkbox)
 
-    def generate_file_contents(self):
+    def generate_file_contents(self) -> str:
         contents = FILE_TEMPLATE.copy()
         
         for checkbox in self.todo_pile.widget_list[1:]:
@@ -198,11 +201,11 @@ class Minito:
 
         return json.dumps(contents, indent=4)
 
-    def save_file(self):
+    def save_file(self) -> None:
         with open(self.filename, 'w') as file:
             file.write(self.generate_file_contents())
 
-    def load_file(self):
+    def load_file(self) -> None:
         if self.filename.split('.')[-1] != "minito":
             raise Exception("File is not a '.minito' file")
         
@@ -211,7 +214,7 @@ class Minito:
             for task in file_data["tasks"]:
                 self.add_task(task["task"], task["completed"])
 
-    def exiting(self):
+    def exiting(self) -> None:
         user_input = self.get_input_box_text()
         if user_input == "yes":
             self.save_file()
@@ -224,27 +227,27 @@ class Minito:
 # - the bold will be removed
 # - a strikethrough will be applied
 class CustomCheckBox(urwid.CheckBox):
-    def __init__(self, text: str, state: str, minito_obj: Minito):
+    def __init__(self, text: str, state: str, minito_obj: Minito) -> None:
         self.minito_obj = minito_obj
         super().__init__(("task-normal", text), state=state)
-        if state == True:
+        if state:
             self.apply_completed_effect()
 
-    def apply_completed_effect(self):
+    def apply_completed_effect(self) -> None:
         self.set_label(("task-completed", self.get_label()))
 
     # fixed to apply correct formatting based on current state
-    def set_label(self, text: str):
-        if self.get_state() == False:
+    def set_label(self, text: str) -> None:
+        if not self.get_state():
             super().set_label(("task-normal", text))
         else:
             super().set_label(("task-completed", text))
 
-    def keypress(self, size: tuple[int], key: str):
-        if key == self.minito_obj.get_keybinding("delete"):
+    def keypress(self, size: tuple[int], key: str) -> str | None:
+        if key == self.minito_obj.get_keybinding("delete"):         # "backspace"
             self.minito_obj.todo_pile.widget_list.remove(self)
             return
-        elif key == self.minito_obj.get_keybinding("edit"):
+        elif key == self.minito_obj.get_keybinding("edit"):         # "ctrl e"
             self.minito_obj.set_input_state("editing-task")
             self.minito_obj.set_input_box_text(self.get_label())
             # moving the cursor to the right
@@ -256,7 +259,7 @@ class CustomCheckBox(urwid.CheckBox):
             return super().keypress(size, key)
         
         # when ENTER pressed on this checkbox, apply attr if completed else remove attr
-        if self.get_state() == False:
+        if not self.get_state():
             self.apply_completed_effect()
         else:
             self.set_label(("task-normal", self.get_label()))
