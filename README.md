@@ -33,7 +33,7 @@ C:\Minito\Location> Minito_vX.X.X.exe
 ### Opening a File
 The following is the syntax to open a .minito file using the command line:
 ```cmd
-C:\Minito\Location> Minito_vX.X.X.exe C:\example\path\example_file.minito
+C:\Minito\Location> Minito_vX.X.X.exe C:\path\to\example\file.minito
 ```
 A .minito file can also be opened using the Windows File Explorer by performing the "Open with" operation and choosing the Minito exe that you have downloaded.
 
